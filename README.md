@@ -6,7 +6,7 @@
 
 
 
-In this work, we introduce, **AdaPrompt** a framwork that retrieves data from large raw text for continual pre-training prompt-based systems.
+In this work, we introduce **AdaPrompt**, a framwork that retrieves data from large raw text for continual pre-training prompt-based systems.
 
 *[AdaPrompt: Adaptive Model Training for Prompt-based NLP](https://aclanthology.org/2022.findings-emnlp.448/)*
 
@@ -18,20 +18,26 @@ In this work, we introduce, **AdaPrompt** a framwork that retrieves data from la
     <img src="./framework.png" width="666" alt="method">
 </p>
 
+AdaPrompt aims to improve the model performance when using small language models (such as BERT) for prompt learning in a low-resource setting.
+The main idea is to adapt a PLM to a strong prompt-based model for an end task by exploring knowledge from its raw input data.
 
-As shown in the above figure, First, we use the Roberta-large to give labels on those samples using prompt as shown in the paper. 
+The overall procedure is shown in the above figure.
+
+### Adaptively Retrieve Data for Continual Pretraining
+- First, we use the Roberta-large to give labels on those samples using prompt as shown in the [paper]((https://aclanthology.org/2022.findings-emnlp.448/)). 
 In particular, for example, given a sentence ```"I like the movie"```, we first convert all data into ```"X. In summary, the movie is <MASK>."```, i.e. ```"I like the movie. In summary, the movie is <MASK>,"```.
-Then we use Roberta large to label them and obtain the top-K words to have the sentences like: ```"X. In summary, the movie is good"```, ```"X. In summary, the movie is great"```, ```"X. In summary, the movie is interesting"```, etc.
-These sentences will be then used as queries to retrieve raw data using the Elastic.
-
+- Then we use a language model (e.g., Roberta large) to label them and obtain the top-K words to have the sentences like: ```"X. In summary, the movie is good"```, ```"X. In summary, the movie is great"```, ```"X. In summary, the movie is interesting"```, etc.
+- These sentences will be then used as queries to retrieve raw data using the Elastic.
 For elastic (https://www.elastic.co/), we index the data which is used for Roberta pretaining on sentence level.
+- After having the retrieved data, we first deduplicate them, and use them for continual pretraining (https://github.com/allenai/dont-stop-pretraining).
+- Now, we assume the model has gained more related knowledge for prompt-based learning on downstream tasks. For PET experiments, we use the code from https://github.com/timoschick/pet.
 
-After having the retrieved data, we first deduplicate them, and use them for continual pretraining (https://github.com/allenai/dont-stop-pretraining).
+This process can be framed in an iterative way.
 
-For PET experiments, we use the code from https://github.com/timoschick/pet.
+### Adaptive Verbalizer Augmentation
 
-
-
+As regular prompt- based method defines the verbalizer that maps predicted label word into task classes, such as “good” for positive and “bad” for negative. However, predefined verbalizer can be limited. To expand this verbalizer, we first infer top-|O| label words at mask token position over all inputs in test set.
+Then, we filter the predicted words and obtain a set of high frequent words C as candidates for verbalizer augmentation. Then, we propose a new method for exploring useful verbalizer words by using knowl- edge from a Natural Language Entailment model.
 
 If you find our paper interesting, please kindly cite our paper:
 ```
